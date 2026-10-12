@@ -102,6 +102,10 @@ separately by `model.SchemaVersion` (currently 1.5.0).
   `REQUESTY_API_KEY` (or `PGBOT_AI_API_KEY`), the same way the `openrouter`
   alias works. It is never auto-detected, and it never picks up an OpenAI or
   OpenRouter key.
+- **Opper as an `explain` / `ask` provider.** `PGBOT_AI_PROVIDER=opper` sends
+  `/chat/completions` to `https://api.opper.ai/v3/compat` with `OPPER_API_KEY`
+  (or `PGBOT_AI_API_KEY`), the same way the `requesty` alias works. It is
+  never auto-detected, and it never picks up an OpenAI or OpenRouter key.
 
 ### Changed
 - `model.ServerInfo` gains `instance` and `instance_role` (additive). JSON

@@ -113,15 +113,19 @@ func Resolve() (LanguageModel, error) {
 			ReasoningEffort: envOr("PGBOT_AI_REASONING_EFFORT", ""),
 		}
 
-	case "openai", "openrouter", "requesty", "ollama", "openai-compatible":
+	case "openai", "openrouter", "requesty", "opper", "ollama", "openai-compatible":
 		// One /chat/completions client serves them all; only the endpoint and the
 		// conventional key variable differ.
 		if key == "" {
-			if name == "requesty" {
+			switch name {
+			case "requesty":
 				// Requesty only takes its own key, so an OpenAI or OpenRouter key
 				// is never sent to it.
 				key = firstEnv("REQUESTY_API_KEY")
-			} else {
+			case "opper":
+				// Same for Opper.
+				key = firstEnv("OPPER_API_KEY")
+			default:
 				key = firstEnv("OPENAI_API_KEY", "OPENROUTER_API_KEY")
 			}
 		}
@@ -137,6 +141,8 @@ func Resolve() (LanguageModel, error) {
 				base = defaultOpenRouterURL
 			case "requesty":
 				base = defaultRequestyURL
+			case "opper":
+				base = defaultOpperURL
 			case "ollama":
 				base = defaultOllamaURL
 			case "openai-compatible":
@@ -202,6 +208,8 @@ func keyVarsFor(name string) string {
 		return "XAI_API_KEY / GROK_API_KEY"
 	case "requesty":
 		return "REQUESTY_API_KEY"
+	case "opper":
+		return "OPPER_API_KEY"
 	default:
 		return "OPENAI_API_KEY / OPENROUTER_API_KEY"
 	}

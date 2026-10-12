@@ -12,7 +12,7 @@ func clearEnv(t *testing.T) {
 	for _, k := range []string{
 		"PGBOT_AI_PROVIDER", "PGBOT_AI_MODEL", "PGBOT_AI_BASE_URL", "PGBOT_AI_API_KEY",
 		"PGBOT_AI_REASONING_EFFORT", "GEMINI_API_KEY", "GOOGLE_API_KEY", "ANTHROPIC_API_KEY",
-		"OPENAI_API_KEY", "OPENROUTER_API_KEY", "REQUESTY_API_KEY", "XAI_API_KEY", "GROK_API_KEY",
+		"OPENAI_API_KEY", "OPENROUTER_API_KEY", "REQUESTY_API_KEY", "OPPER_API_KEY", "XAI_API_KEY", "GROK_API_KEY",
 		"AWS_BEARER_TOKEN_BEDROCK", "AWS_REGION", "AWS_DEFAULT_REGION",
 		"PGBOT_GEMINI_MODEL", "PGBOT_GEMINI_URL", "PGBOT_OPENAI_MODEL", "PGBOT_OPENAI_URL",
 	} {
@@ -279,6 +279,39 @@ func TestResolve_requesty(t *testing.T) {
 	t.Setenv("REQUESTY_API_KEY", "k")
 	if _, err := Resolve(); err == nil {
 		t.Error("REQUESTY_API_KEY alone must not be auto-detected")
+	}
+}
+
+// opper is an explicit alias only: it goes to Opper with OPPER_API_KEY or
+// PGBOT_AI_API_KEY, never borrows an OpenAI key, and is never auto-detected.
+func TestResolve_opper(t *testing.T) {
+	for _, keyVar := range []string{"OPPER_API_KEY", "PGBOT_AI_API_KEY"} {
+		clearEnv(t)
+		t.Setenv("PGBOT_AI_PROVIDER", "opper")
+		t.Setenv(keyVar, "k")
+		m, err := Resolve()
+		if err != nil {
+			t.Fatalf("opper with %s: %v", keyVar, err)
+		}
+		if m.Provider() != "openai" {
+			t.Errorf("opper with %s: provider = %q, want openai", keyVar, m.Provider())
+		}
+		if m.Endpoint() != defaultOpperURL {
+			t.Errorf("opper with %s: endpoint = %q, want %q", keyVar, m.Endpoint(), defaultOpperURL)
+		}
+	}
+
+	clearEnv(t)
+	t.Setenv("PGBOT_AI_PROVIDER", "opper")
+	t.Setenv("OPENAI_API_KEY", "sk-openai")
+	if _, err := Resolve(); err == nil || !strings.Contains(err.Error(), "OPPER_API_KEY") {
+		t.Errorf("opper with only OPENAI_API_KEY should ask for OPPER_API_KEY, got: %v", err)
+	}
+
+	clearEnv(t)
+	t.Setenv("OPPER_API_KEY", "k")
+	if _, err := Resolve(); err == nil {
+		t.Error("OPPER_API_KEY alone must not be auto-detected")
 	}
 }
 
