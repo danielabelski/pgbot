@@ -7,6 +7,8 @@ separately by `model.SchemaVersion` (currently 1.5.0).
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-10-18
+
 ### Added
 - **`pgbot sql explain "<SELECT …>"` — a query plan, read in plain English.**
   Runs the plan-only form of EXPLAIN for one SELECT (`GENERIC_PLAN` on
@@ -26,41 +28,6 @@ separately by `model.SchemaVersion` (currently 1.5.0).
 - The MCP `explain_plan` tool now shares the same guarded path and returns the
   same deterministic `observations` alongside the raw plan, plus `generic_plan`
   when GENERIC_PLAN was used.
-
-### Changed
-- **PostgreSQL driver: pgx → [pgGo](https://github.com/pgrundev/pggo).** pgbot
-  now talks to PostgreSQL through pgGo, a dependency-free wire-protocol client
-  (standard library only). Output is unchanged apart from pgbot's own
-  footprint in the counters it samples (below) — verified by running the pgx
-  and pgGo builds side by side against PostgreSQL 16–19, a streaming standby,
-  PgBouncer (transaction mode) and PgDog. Read-only
-  guarantees are unchanged: the same session pins and `READ ONLY` transactions,
-  enforced by PostgreSQL. Effects you may notice:
-  - The binary is ~5 MB smaller (4 fewer modules: pgx, pgpassfile,
-    pgservicefile, puddle); runs need fewer round trips (`BEGIN` is pipelined
-    with each collector's first query).
-  - pgbot's own traffic is less visible in `pg_stat_database` during the
-    sample window, so throughput on a near-idle database is reported closer to
-    the truth (pgx builds counted ~15–20 tps of pgbot's own commits; with a
-    rate-limited 200 tps workload pgx reported ~220, pgGo ~200). On an idle
-    database, cache hit and rollbacks now show `—` (nothing measured) where the
-    pgx build graded pgbot's own reads.
-  - Behind a transaction pooler no protocol fallback is needed any more: pgGo
-    only uses unnamed statements, parsed and executed within one sync. The
-    prepared-statement probe still runs and still counts as a pooler signal.
-- **Gauge strip in the default `inspect` view.** Four vital signs sit right
-  under the header — cache hit, lock wait (naming the culprit query when
-  sessions are blocked), rollbacks, and idle index bytes as a share of the
-  database — each a bar, a value and a one-word status driven by the finding
-  that grades the same signal. Signals pgbot could not measure render dim
-  with `—` and say why (`thin sample`, `window < 15m`, `not measurable`). The
-  GOOD bullet list becomes a compact `checked · queries · vacuum · …` line of
-  the subsystems that were collected and produced no finding. Score, the
-  CRITICAL/WARNING/NOTE bullets, `--full`, `--json`, MCP, SARIF and the HTML
-  report are unchanged. The footer's ask hint now reads
-  `pgbot ask "why is it slow?"`.
-
-### Added
 - **`replica_identity_missing` finding.** A table published for `UPDATE` or
   `DELETE` with no usable replica identity — `DEFAULT` and no primary key,
   `NOTHING`, or `USING INDEX` whose index is gone — makes Postgres reject the
@@ -128,9 +95,41 @@ separately by `model.SchemaVersion` (currently 1.5.0).
   never auto-detected, and it never picks up an OpenAI or OpenRouter key.
 
 ### Changed
+- **PostgreSQL driver: pgx → [pgGo](https://github.com/pgrundev/pggo).** pgbot
+  now talks to PostgreSQL through pgGo, a dependency-free wire-protocol client
+  (standard library only). Output is unchanged apart from pgbot's own
+  footprint in the counters it samples (below) — verified by running the pgx
+  and pgGo builds side by side against PostgreSQL 16–19, a streaming standby,
+  PgBouncer (transaction mode) and PgDog. Read-only
+  guarantees are unchanged: the same session pins and `READ ONLY` transactions,
+  enforced by PostgreSQL. Effects you may notice:
+  - The binary is ~5 MB smaller (4 fewer modules: pgx, pgpassfile,
+    pgservicefile, puddle); runs need fewer round trips (`BEGIN` is pipelined
+    with each collector's first query).
+  - pgbot's own traffic is less visible in `pg_stat_database` during the
+    sample window, so throughput on a near-idle database is reported closer to
+    the truth (pgx builds counted ~15–20 tps of pgbot's own commits; with a
+    rate-limited 200 tps workload pgx reported ~220, pgGo ~200). On an idle
+    database, cache hit and rollbacks now show `—` (nothing measured) where the
+    pgx build graded pgbot's own reads.
+  - Behind a transaction pooler no protocol fallback is needed any more: pgGo
+    only uses unnamed statements, parsed and executed within one sync. The
+    prepared-statement probe still runs and still counts as a pooler signal.
+- **Gauge strip in the default `inspect` view.** Four vital signs sit right
+  under the header — cache hit, lock wait (naming the culprit query when
+  sessions are blocked), rollbacks, and idle index bytes as a share of the
+  database — each a bar, a value and a one-word status driven by the finding
+  that grades the same signal. Signals pgbot could not measure render dim
+  with `—` and say why (`thin sample`, `window < 15m`, `not measurable`). The
+  GOOD bullet list becomes a compact `checked · queries · vacuum · …` line of
+  the subsystems that were collected and produced no finding. Score, the
+  CRITICAL/WARNING/NOTE bullets, `--full`, `--json`, MCP, SARIF and the HTML
+  report are unchanged. The footer's ask hint now reads
+  `pgbot ask "why is it slow?"`.
 - `model.ServerInfo` gains `instance` and `instance_role` (additive). JSON
   contract `SchemaVersion` → **1.3.0**; a 1.2.0 consumer still parses 1.3.0
   output unchanged.
+
 ### Fixed
 - **Connection-string redaction now covers `?password=` in URL form.** libpq
   accepts the password as a query parameter as well as in the userinfo; the
@@ -760,6 +759,7 @@ separately by `model.SchemaVersion` (currently 1.5.0).
   1.25.13, and golang.org/x/text to v0.39.0; `govulncheck` now runs in CI and
   reports no vulnerabilities.
 
+[0.9.0]: https://github.com/pgrundev/pgbot/releases/tag/v0.9.0
 [0.8.1]: https://github.com/pgrundev/pgbot/releases/tag/v0.8.1
 [0.8.0]: https://github.com/pgrundev/pgbot/releases/tag/v0.8.0
 [0.7.2]: https://github.com/pgrundev/pgbot/releases/tag/v0.7.2
